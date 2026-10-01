@@ -1,3 +1,11 @@
+用Deepseek-flash写的一个扫雷，用了约3M token，好在缓存命中99%，大约是0.7元左右吧
+除了这几句话，其他全部由Deepseek-flash编写，测试。
+*快去下载Deepseek Harness，这几天送6块*
+补一张图片（开局的）：
+![开局截图](screenshots/start.png)
+
+---
+
 # 扫雷 Minesweeper
 
 > 发起者：**Liu_Yuxun** ｜ 实现：**DeepSeek-flash**
