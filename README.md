@@ -5,6 +5,7 @@
 *快去下载Deepseek Harness，这几天送6块*
 
 补一张图片（开局的）：
+
 ![开局截图](screenshots/start.png)
 
 ---
