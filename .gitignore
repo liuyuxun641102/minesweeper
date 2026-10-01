@@ -1,0 +1,27 @@
+# 编译产物（建议用 GitHub Releases 分发 exe，而不是提交进仓库）
+*.exe
+*.o
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.a
+
+# 编辑器 / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Windows 系统文件
+Thumbs.db
+Desktop.ini
+desktop.ini
+ehthumbs.db
+
+# 构建目录
+build/
+dist/
+out/
