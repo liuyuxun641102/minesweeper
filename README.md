@@ -6,7 +6,9 @@
 
 补一张图片（开局的）：
 
+
 ![开局截图](screenshots/start.png)
+
 
 update:2026.10.7,更新1.1版本
 
