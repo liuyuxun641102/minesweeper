@@ -1,15 +1,3 @@
-用Deepseek-flash写的一个扫雷，用了约3M token，好在缓存命中99%，大约是0.7元左右吧
-
-除了这几句话，其他全部由Deepseek-flash编写，测试。
-
-*快去下载Deepseek Harness，这几天送6块*
-
-补一张图片（开局的）：
-
-![开局截图](screenshots/start.png)
-
----
-
 # 扫雷 Minesweeper
 
 > 发起者：**Liu_Yuxun** ｜ 实现：**DeepSeek-flash**
@@ -38,9 +26,17 @@
 
 ## 快速开始
 
-### 方式一：用编译好的 exe
+### 方式一：下载编译好的 exe
 
-从本仓库的 [Releases](../../releases) 下载 `minesweeper_gui.exe`。它是**单文件绿色版**，C++ 运行时已经静态链接进去，拷到任何 Windows 10 / 11 (x64) 上双击就能玩，对方不需要装编译器或任何运行库。
+到本仓库的 [Releases](../../releases) 页面下载最新的压缩包（当前是 `1.1.7z`），解压后有三个 exe：
+
+| 文件 | 版本 | 适用系统 |
+| --- | --- | --- |
+| `minesweeper_gui.exe` | 图形版 | Windows 10 / 11 (x64) |
+| `minesweeper_gui_win7.exe` | 图形版 | **Windows 7 / 8 / 8.1**（也兼容 10 / 11） |
+| `minesweeper.exe` | 控制台版 | Windows 10 / 11 |
+
+三个都是**单文件绿色版**，C++ 运行时已经静态链接进去，拷到目标机器上双击就能玩，不需要装编译器或任何运行库。**Win7 / 8 用户请用 `minesweeper_gui_win7.exe`。**
 
 （仓库里没有 Release 的话，直接双击 `build.bat` 自己编一个，大概 30 秒。）
 
@@ -114,22 +110,35 @@ g++ -std=c++17 -O2 -static -static-libgcc -static-libstdc++ -o minesweeper.exe m
 
 ## Windows 7 / 8 支持
 
-`win7-win8/` 目录是专门给老系统准备的图形版，源码做了两处适配：
+`win7-win8/` 目录是给老系统准备的图形版，源码做了两处适配：
 
 1. 声明 `_WIN32_WINNT` / `WINVER = 0x0601`，避免链接到 Windows 8 及以上才有的 API；
 2. 界面字体从 `Microsoft YaHei UI` 换成 `Microsoft YaHei` —— 前者是 Windows 8 才引入的，在 Windows 7 上会回退成很难看的默认字体。
 
-编译时脚本会显式带上 `-D_WIN32_WINNT=0x0601 -DWINVER=0x0601`。
+**但真正的关键在工具链，不在源码。** 同一个 `.cpp`，UCRT 版和 MSVCRT 版工具链编出来的 exe，依赖的 DLL 完全不同：
 
-⚠️ **还需要注意运行时库**：如果 exe 是用基于 UCRT 的工具链（UCRT 版 MinGW-w64、或 MSVC 默认的 `/MD`）编译的，它会依赖 `api-ms-win-crt-*.dll`。Windows 10 / 11 自带这些 DLL，但**裸的 Windows 7 / 8.1 可能没有**。三条解决路线：
-
-| 方案 | 做法 | 效果 |
+| 工具链 | 编出来的 exe 依赖什么 | 裸的 Win7 SP1 / Win8.1 |
 | --- | --- | --- |
-| A. 让老系统装补丁 | Windows 7 SP1 装一次 [KB2999226](https://support.microsoft.com/help/2999226)（通用 C 运行时更新，通常已在 Windows Update 里） | 装完即可直接运行 |
-| B. 用 MSVC 编译 | 用 `/MT` 而不是 `/MD`（`build_win7.bat` 里已经是 `/MT`） | UCRT 被静态链进去，**不需要任何补丁** |
-| C. 换工具链 | 用 **msvcrt 版**（非 UCRT 版）的 MinGW-w64 重新编译 | 依赖变成系统自带的 `msvcrt.dll` |
+| UCRT 版 MinGW-w64（默认） | 12 个 `api-ms-win-crt-*.dll` | ❌ 要先装 [KB2999226](https://support.microsoft.com/help/2999226) |
+| **MSVCRT 版 MinGW-w64** | 只有 `msvcrt.dll`（系统自带） | ✅ 直接跑，不需要任何补丁 |
 
-控制台版在老系统上还有额外的坑：它用 ANSI 转义序列上色，而 Windows 10 之前的控制台不支持 `ENABLE_VIRTUAL_TERMINAL_PROCESSING`，在 Win7 上会直接打印出乱码转义符。老系统请用图形版。
+所以 Win7 / 8 版**必须用 MSVCRT 版工具链编译**：双击 `win7-win8/build_win7_msvcrt.bat`。
+
+这个脚本会在**当前那个黑窗口内临时**把 MSVCRT 工具链排到 `PATH` 最前面，**不会修改系统环境变量**，也不影响你平时用的 UCRT 工具链。编完还会自动打印 exe 依赖的 DLL 列表供你验收。
+
+> 脚本默认读 `C:\mingw64-16.2.0-msvcrt`。工具链换位置了，用记事本改脚本里的 `MINGW=` 那一行即可。
+
+**实测结果**（用 MSVCRT 工具链编译后的导入表）：
+
+```
+KERNEL32.dll, USER32.dll, GDI32.dll, msvcrt.dll
+```
+
+`api-ms-win-crt-*` 一个都不剩。
+
+⚠️ **仍需说明**：以上验证的是 **exe 导入表里不再有 UCRT 依赖**——这是能在老系统运行的**必要条件**，但开发者手上**没有 Win7 / Win8 实机**，没有在真实老系统上跑过。理论上没问题，实际请自行确认。
+
+另外，控制台版在老系统上还有个额外的坑：它用 ANSI 转义序列上色，而 Windows 10 之前的控制台不支持 `ENABLE_VIRTUAL_TERMINAL_PROCESSING`，在 Win7 上会直接打印出乱码转义符。**老系统请用图形版。**
 
 ## 项目结构
 
@@ -140,13 +149,36 @@ Minesweeper/
 ├─ build.bat                      一键编译两个版本
 ├─ win7-win8/
 │  ├─ minesweeper_gui_win7.cpp    Win7 / 8 适配版源码
-│  ├─ minesweeper_gui_win7.exe    已编译（可选上传）
-│  └─ build_win7.bat              老系统编译脚本
+│  ├─ minesweeper_gui_win7.exe    已编译（MSVCRT 工具链）
+│  ├─ build_win7_msvcrt.bat       用 MSVCRT 工具链编译（推荐）
+│  └─ build_win7.bat              转发调用上面的脚本
 ├─ screenshots/
 │  └─ gui.png                     界面截图
 ├─ LICENSE
 └─ README.md
 ```
+
+## 版本更新
+
+### v1.1
+
+**修复：Win7 / Win8 版本实际上根本跑不起来**
+
+- 之前 `win7-win8/` 里的 exe 是用 UCRT 版工具链编的，导入表里有 **12 个** `api-ms-win-crt-*.dll`，裸的 Win7 / 8.1 上直接报缺 DLL —— 名字叫 Win7 版，其实不是。
+- 现在改用 **MSVCRT 版 MinGW-w64（GCC 16.2.0）** 编译，导入表只剩 `KERNEL32 / USER32 / GDI32 / msvcrt`，`api-ms-win-crt-*` 全部消失。
+- 新增 `build_win7_msvcrt.bat`：一键用 MSVCRT 工具链编译，并自动打印 exe 的依赖 DLL 供验收。
+- `build_win7.bat` 改为转发调用上面那个脚本，避免再编出 UCRT 版的老系统包。
+- README 补充版本记录与工具链兼容性说明。
+
+### v1.0
+
+首个版本。
+
+- **图形版**：Win32 + GDI 手写界面，双缓冲绘制不闪屏，经典 3D 网格，笑脸状态（微笑 / 张嘴 / 墨镜 / 苦脸），LED 计时与剩余雷数，踩中的雷红色高亮
+- **控制台版**：纯标准库，ANSI 彩色输出
+- **玩法**：首点保护（首格及周围 8 格无雷）、迭代式洪水填充、chord 快速展开
+- **三个难度**：初级 9×9 / 10 雷，中级 16×16 / 40 雷，高级 30×16 / 99 雷
+- 零第三方依赖，无 `.rc` 资源文件，每个版本都是单个 `.cpp`
 
 ## 关于本项目
 

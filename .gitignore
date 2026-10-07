@@ -25,3 +25,5 @@ ehthumbs.db
 build/
 dist/
 out/
+*.7z
+*.zip
